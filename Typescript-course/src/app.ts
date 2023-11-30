@@ -1,142 +1,103 @@
-//==========================Intersection Type====================
-type Named = {
-  name: string;
-  roles: string[];
+//Generic types
+//what is generic
+console.log("Generic type");
+const names: Array<string> = ["Khang", "Phuong"]; //string[]
+
+const promise: Promise<string> = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    resolve("This is done");
+  }, 2000);
+});
+promise.then((data) => console.log("Generic promise", data)); //data is type of string
+//=========================CUSTOM GENERIC TYPE
+console.log("===================");
+console.log("custom generic type");
+
+//without generic type
+function merge(objA: object, objB: object) {
+  return { ...objA, ...objB };
+}
+const result = merge({ tao: "Khang" }, { age: 28 });
+
+console.log("generic type: ", merge({ tao: "Khang" }, { age: 29 }));
+// console.log(result.age); Error because TS dont know type/structure of result variable
+
+//with generic type sơ khai
+function merge2<T, U>(objA: T, objB: U) {
+  return { ...objA, ...objB };
+}
+const result2 = merge2({ tao: "Khang2" }, { age: 29 });
+console.log(result2.age);
+//with generic more complex
+const merge3 = <T extends object, U extends object>(objA: T, objB: U) => {
+  return { ...objA, ...objB };
 };
+const result3 = merge3({ tao: "Khang3" }, { age: 29 });
+// const result31 = merge3("Khang", { age: 29 });
+// Error because the 1st argument must be an object
+console.log("================");
+//============================
+console.log("another generic function");
 
-type Email = {
-  email: string;
-};
-
-interface PrintFn {
-  printFn(): void;
+interface Lengthy {
+  length: number;
 }
-type User = Named & Email & PrintFn;
 
-let user1: User = {
-  roles: ["admin"],
-  name: "Khang",
-  email: "khang@gmail.com",
-  printFn() {
-    console.log("print method using intersction: tao");
-  },
-};
-
-user1.printFn();
-console.log("========================");
-//==========================Type Guards==========================
-type Combinable = string | Number;
-type Numberic = number | boolean;
-
-type Universal = Combinable & Numberic;
-
-const add = (a: Combinable, b: Combinable) => {
-  //type guards
-  if (typeof a === "string" || typeof b === "string") {
-    return a.toString() + b.toString();
+function countAndPrint<T extends Lengthy>(element: T) {
+  let descriptionText = "Got no value.";
+  if (element.length > 0) {
+    descriptionText = `got ${element.length} length value`;
   }
-  return +a + +b;
-};
-
-//===
-interface Admin {
-  name: string;
-  privileges: string[];
+  return [element, descriptionText];
 }
-interface Employee {
-  name: string;
-  startDate: Date;
-}
+let res = countAndPrint("Hi there!");
+console.log(res);
 
-type UnknownEmployee = Employee | Admin;
-function printEmployeeInformation(emp: UnknownEmployee) {
-  console.log("Name: ", emp.name); // Both Admin and Employee have name prop
-  // console.log('Privileges: ', emp.privileges) //error because only Admin has the name prop
-  // we should use the "in" keyword of Javascript to check if a props is in emp object or not
-  if ("privileges" in emp) {
-    console.log("privileges: ", emp.privileges);
+console.log("================");
+//============================
+console.log("the 'keyof' constraint");
+
+function printKeyValue<T>(obj: T, key: keyof T) {
+  return obj[key];
+}
+console.log(printKeyValue({ tao: "123" }, "tao"));
+console.log("===============");
+//============================
+console.log("Generic classes");
+class DataStorage<T> {
+  private data: T[] = [];
+  addItem(item: T) {
+    this.data.push(item);
   }
-  if ("startDate" in emp) {
-    console.log(
-      "start date: ",
-      emp.startDate.getDate().toString() +
-        " thang " +
-        (emp.startDate.getMonth() + 1).toString() +
-        " nam " +
-        emp.startDate.getFullYear().toString()
-    );
+  removeItem(item: T) {
+    this.data.splice(this.data.indexOf(item), 1);
   }
-}
-console.log('type guards using "in" keyword');
-let user2: UnknownEmployee = {
-  name: "tao",
-  privileges: ["author", "admin"],
-  startDate: new Date(Date.now()),
-};
-printEmployeeInformation(user2);
-
-console.log("=======");
-
-console.log("instance of Type guards - uses for classes");
-class Car {
-  drive() {
-    console.log("Driving...");
+  getItems() {
+    return [...this.data];
   }
 }
 
-class Truck {
-  drive() {
-    console.log("Driving a truck...");
-  }
-  loadCargo(amount: number) {
-    console.log("Loading cargo... " + amount);
-  }
+let store1 = new DataStorage<number>();
+store1.addItem(12);
+// store1.addItem("tao"); //Error, generic type is number
+//===================================
+console.log("=====================");
+console.log("Generic Utility Types");
+
+interface CourseGoal {
+  title: string;
+  description: string;
+  completeUntil: Date;
 }
 
-type Vehicle = Car | Truck;
-
-const vehicle1 = new Car();
-const vehicle2 = new Truck();
-
-function useVehicle(vehicle: Vehicle) {
-  vehicle.drive();
-  if ("loadCargo" in vehicle) {
-    vehicle.loadCargo(2250);
-  }
+function createCourseGoal(
+  title: string,
+  description: string,
+  date: Date
+): CourseGoal {
+  let courseGoal: Partial<CourseGoal> = {};
+  courseGoal.title = title;
+  courseGoal.description = description;
+  courseGoal.completeUntil = date;
+  return courseGoal as CourseGoal;
 }
-
-useVehicle(vehicle2);
-console.log("typeof an instance base on a class: ", typeof vehicle1); //object
-console.log("=========================");
-//===DISCRIMINATE UNION - TYPE GUARDS==
-//a special type of type guards, or something that helps you with the type guards
-//It's a pattern which you can use when working with union types
-//that makes implement type guards easier
-//It is available when you work with object types
-//give every interface or every object which should be part of the Union an Extra property
-//can use any name we want, but often use "kind", "type"
-console.log("type gurads - discriminate union");
-interface Bird {
-  type: "bird";
-  flyingSpeech: number;
-}
-interface Horse {
-  type: "horse";
-  runningSpeech: number;
-}
-
-type Animal = Bird | Horse;
-const moveAnimal = (animal: Animal) => {
-  switch (animal.type) {
-    case "bird":
-      console.log("Moving speach : ", animal.flyingSpeech);
-      break;
-    case "horse":
-      console.log("Moving speech: ", animal.runningSpeech);
-  }
-};
-let Parakeet: Animal = {
-  type: "bird",
-  flyingSpeech: 125,
-};
-moveAnimal(Parakeet);
