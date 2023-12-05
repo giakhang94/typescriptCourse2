@@ -1,103 +1,141 @@
-//Generic types
-//what is generic
-console.log("Generic type");
-const names: Array<string> = ["Khang", "Phuong"]; //string[]
-
-const promise: Promise<string> = new Promise((resolve, reject) => {
-  setTimeout(() => {
-    resolve("This is done");
-  }, 2000);
-});
-promise.then((data) => console.log("Generic promise", data)); //data is type of string
-//=========================CUSTOM GENERIC TYPE
-console.log("===================");
-console.log("custom generic type");
-
-//without generic type
-function merge(objA: object, objB: object) {
-  return { ...objA, ...objB };
+//====================DECORATORS===============
+console.log("Decorators");
+//add a function after create the class
+//decorators
+function Logger(constructor: Function) {
+  console.log("loggin...");
+  console.log("constructor from logger: ", constructor);
+  console.log("=======================");
 }
-const result = merge({ tao: "Khang" }, { age: 28 });
-
-console.log("generic type: ", merge({ tao: "Khang" }, { age: 29 }));
-// console.log(result.age); Error because TS dont know type/structure of result variable
-
-//with generic type sơ khai
-function merge2<T, U>(objA: T, objB: U) {
-  return { ...objA, ...objB };
+function Logger2(logString: string) {
+  //decorator factory (là cái hàm trong return)
+  return function (constructor: Function) {
+    console.log("other ways: ", constructor);
+    console.log("====================");
+  };
 }
-const result2 = merge2({ tao: "Khang2" }, { age: 29 });
-console.log(result2.age);
-//with generic more complex
-const merge3 = <T extends object, U extends object>(objA: T, objB: U) => {
-  return { ...objA, ...objB };
-};
-const result3 = merge3({ tao: "Khang3" }, { age: 29 });
-// const result31 = merge3("Khang", { age: 29 });
-// Error because the 1st argument must be an object
-console.log("================");
-//============================
-console.log("another generic function");
-
-interface Lengthy {
-  length: number;
+//building more useful decorator factories
+//the decorator can receive some arguments,
+//and these arguments will be used in the factory function
+function MoreClassReturn() {
+  return function <T extends { new (...arg: any[]): { name: string } }>(
+    constructorOri: T
+  ) {
+    return class extends constructorOri {
+      tao2 = "Phuong";
+      constructor(...arg: any[]) {
+        super();
+        this.name = "Heo Phuong";
+      }
+    };
+  };
 }
-
-function countAndPrint<T extends Lengthy>(element: T) {
-  let descriptionText = "Got no value.";
-  if (element.length > 0) {
-    descriptionText = `got ${element.length} length value`;
-  }
-  return [element, descriptionText];
+function WithTemplate(template: string, hookId: string) {
+  //factory
+  return function <T extends { new (...arg: any[]): { name: string } }>(
+    constructorOriginal: T
+  ) {
+    //chưa hiểu lắm, nhưng phải thêm generic như trên mới hết lỗi
+    // console.log("constructer original", constructorOriginal);
+    return class extends constructorOriginal {
+      tao: string;
+      constructor(...arg: any[]) {
+        super(); //call super here => save the original function, original class
+        this.tao = "khang";
+        // console.log("arg", arg);
+        //use arguments from decorator
+        // const p = new constructorOriginal(); //bỏ cái này khi nào tạo instance decorator mới execute
+        console.log("constructorOriginal obj", this);
+        const hookElement = document.getElementById(hookId);
+        if (hookElement) {
+          hookElement.innerHTML = template;
+          hookElement.querySelector("h2")!.textContent = this.name;
+        }
+      }
+    };
+  };
+  //prop value of the class can be gotten through the constructor
+  // let p = new constructor() => name: p.name, other: p.other
+  //also for methods as well, print(){console.log('print....')} --> p.print()
 }
-let res = countAndPrint("Hi there!");
-console.log(res);
-
-console.log("================");
-//============================
-console.log("the 'keyof' constraint");
-
-function printKeyValue<T>(obj: T, key: keyof T) {
-  return obj[key];
-}
-console.log(printKeyValue({ tao: "123" }, "tao"));
-console.log("===============");
-//============================
-console.log("Generic classes");
-class DataStorage<T> {
-  private data: T[] = [];
-  addItem(item: T) {
-    this.data.push(item);
-  }
-  removeItem(item: T) {
-    this.data.splice(this.data.indexOf(item), 1);
-  }
-  getItems() {
-    return [...this.data];
+//only this class, there's no decorators
+@Logger
+@Logger2("LOGGING - PERSON")
+@WithTemplate("<h2>Test with template factory </h2>", "app-template-factory")
+@MoreClassReturn()
+class Person {
+  name = "Max";
+  // constructor() {
+  //   console.log("Creating person object...");
+  // }
+  print(): void {
+    console.log("printing...");
   }
 }
+let person = new Person();
+console.log(person);
+// console.log("==========================");
+//for note
+//create a function before creating a class
+//decorator function get few arguments
+//the first argument refer to the constructor of the class which use this decorator funciton
+//use @ symbol to declare a decorator
+//other way
+//ruturn another function, @Logger()
+//use Captial first letter for the function's name
+//cái nào để gần class hơn sẽ chạy trước
 
-let store1 = new DataStorage<number>();
-store1.addItem(12);
-// store1.addItem("tao"); //Error, generic type is number
-//===================================
-console.log("=====================");
-console.log("Generic Utility Types");
-
-interface CourseGoal {
+//------------- Properties decorator---------------
+//property decorator
+function Log(target: any, propertyName: string | Symbol) {
+  console.log("properties decorator");
+  console.log(target, propertyName);
+  console.log("====================");
+}
+//accessor and parameter decorator
+function Log2(target: any, name: string, descriptor: PropertyDescriptor) {
+  console.log("accessor decorator");
+  console.log(target);
+  console.log(name);
+  console.log(descriptor);
+  console.log("==============");
+}
+function Log3(target: any, name: string, descriptor: PropertyDescriptor) {
+  console.log("methods decorator");
+  console.log(target);
+  console.log(name);
+  console.log(descriptor);
+  console.log("==============");
+}
+function Log4(target: any, name: string, position: number) {
+  console.log("parameter decorator");
+  console.log(target);
+  console.log(name); //name of the method use this parameter, not the parameters
+  console.log(position);
+  console.log("==============");
+}
+class Product {
+  @Log //props decorator: khai báo ở trong class, cùng cấp với các prop
   title: string;
-  description: string;
-  completeUntil: Date;
+  _price: number;
+  @Log2
+  set price(value: number) {
+    if (value > 0) {
+      this._price = value;
+    } else {
+      throw new Error("price must be a postivie number");
+    }
+  }
+  constructor(t: string, p: number) {
+    this.title = t;
+    this._price = p;
+  }
+  @Log3
+  getPriceWithTax(@Log4 tax: number) {
+    return this._price * (1 + tax);
+  }
 }
 
-function createCourseGoal(
-  title: string,
-  description: string,
-  date: Date
-): CourseGoal {
-  let courseGoal: Partial<CourseGoal> = {};
-  courseGoal.title = title;
-  courseGoal.description = description;
-  courseGoal.completeUntil = date;
-  return courseGoal as CourseGoal;
-}
+//test nháp
+console.log("==================");
+console.log("test nhap");
