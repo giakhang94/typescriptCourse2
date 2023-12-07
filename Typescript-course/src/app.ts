@@ -114,6 +114,7 @@ function Log4(target: any, name: string, position: number) {
   console.log(position);
   console.log("==============");
 }
+
 class Product {
   @Log //props decorator: khai báo ở trong class, cùng cấp với các prop
   title: string;
@@ -135,6 +136,127 @@ class Product {
     return this._price * (1 + tax);
   }
 }
+
+//===================Auto bind decorator=================
+console.log("auto bind decorator");
+//auto bind function
+function PrintMessage(
+  target: any,
+  name: string,
+  descriptor: PropertyDescriptor
+) {
+  const originalMethod = descriptor.value;
+  const adjustedDescriptor: PropertyDescriptor = {
+    configurable: true,
+    enumerable: false,
+    get() {
+      console.log(this); //Printer class
+      const boundFn = originalMethod.bind(this);
+      console.log("boundFn", boundFn);
+      return boundFn;
+    },
+  };
+  console.log("adjusted: ", adjustedDescriptor);
+  return adjustedDescriptor;
+}
+//test descriptor
+function tao(target: any, _2: any, descriptor: PropertyDescriptor) {
+  console.log("new descriptor: ", descriptor);
+  console.log("new target", target);
+}
+
+class Printer {
+  message = "this works!";
+  @tao
+  @PrintMessage
+  showMessage() {
+    console.log(this.message);
+  }
+}
+
+let p = new Printer();
+
+const button = document.querySelector("button")!;
+// button.addEventListener("click", () => {
+//   console.log("this ponit to eventListner: ", this?.event?.target?.textContent);
+// });
+//this will point to the eventListener (not to the p instance)
+//to fix this issue, use bind()
+button.addEventListener("click", p.showMessage);
+console.log("==============================");
+//==================validate with decorator============
+interface ValidatorConfig {
+  [property: string]: {
+    [ValidatableProp: string]: string[]; //['requried', 'positive']
+  };
+}
+
+const resigerValidators: ValidatorConfig = {};
+
+function RequiredField(target: any, propName: string) {
+  resigerValidators[target.constructor.name] = {
+    ...resigerValidators[target.constructor.name],
+    [propName]: ["required"],
+  };
+}
+function PositiveNumber(target: any, propName: string) {
+  resigerValidators[target.constructor.name] = {
+    ...resigerValidators[target.constructor.name],
+    [propName]: ["positive"],
+  };
+}
+function validate(obj: any) {
+  let result = true;
+  const objValidatorConfig = resigerValidators[obj.constructor.name];
+  console.log(resigerValidators);
+  if (!objValidatorConfig) {
+    return true;
+  }
+  for (const prop in objValidatorConfig) {
+    for (const validator of objValidatorConfig[prop]) {
+      switch (validator) {
+        case "required":
+          console.log(obj[prop]);
+          if (obj[prop] === "") {
+            result = false;
+          }
+          break;
+        case "positive":
+          result = result && obj[prop] > 0;
+          break;
+      }
+    }
+  }
+  console.log(result);
+  return result;
+}
+console.log("validate decorator");
+class Course2 {
+  @RequiredField
+  title: string;
+  @PositiveNumber
+  price: number;
+  constructor(t: string, p: number) {
+    this.price = p;
+    this.title = t;
+  }
+}
+
+const courseForm = document.querySelector("form")!;
+courseForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const titleEl = document.getElementById("title") as HTMLInputElement;
+  const priceEl = document.getElementById("price") as HTMLInputElement;
+
+  const title = titleEl.value;
+  const price = +priceEl.value;
+  const createdCourse = new Course2(title, price);
+  if (!validate(createdCourse)) {
+    alert("invalid input, please try again");
+  } else {
+    console.log(createdCourse);
+  }
+});
 
 //test nháp
 console.log("==================");
